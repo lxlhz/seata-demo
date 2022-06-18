@@ -1,0 +1,52 @@
+server:
+  port: 8081
+spring:
+  application:
+    name: storage-service
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3307/seata-at-demo?useUnicode=true&useSSL=false&zeroDateTimeBehavior=convertToNull&characterEncoding=UTF-8&allowMultiQueries=true&serverTimezone=Asia/Shanghai
+    username: root
+    password: lhzlx
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 162.14.115.18:8848
+        namespace: 64ed9ca7-d705-4655-b4e4-f824e420a12a
+        group: test
+        # 在dev环境进行debug时，可以将时间设置长一些
+        #heart-beat-interval: 1000 #心跳间隔。单位为毫秒,默认5*1000
+        heart-beat-timeout: 300000 #心跳暂停,收不到心跳，会将实例设为不健康。单位为毫秒,默认15*1000
+        ip-delete-timeout: 4000000 #Ip删除超时,收不到心跳，会将实例删除。单位为毫秒,默认30*1000
+
+
+seata:
+  enabled: true
+  application-id: ${spring.application.name}
+  # 事务组的名称，对应service.vgroupMapping.default_tx_group=xxx中配置的default_tx_group
+  tx-service-group: default_tx_group
+  # 配置事务组与集群的对应关系
+  service:
+    vgroup-mapping:
+      # default_tx_group为事务组的名称，default为集群名称
+      default_tx_group: default
+    disable-global-transaction: false
+  registry:
+    type: nacos
+    nacos:
+      application: seata-server
+      server-addr: 162.14.115.18:8848
+      group: SEATA_GROUP
+      namespace: 64ed9ca7-d705-4655-b4e4-f824e420a12a
+      username: nacos
+      password: nacos
+      cluster: default
+  config:
+    type: nacos
+    nacos:
+      server-addr: 162.14.115.18:8848
+      group: SEATA_GROUP
+      namespace: 64ed9ca7-d705-4655-b4e4-f824e420a12a
+      username: nacos
+      password: nacos
+      data-id: seataServer.properties
