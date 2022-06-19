@@ -11,7 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author LiGezZ
@@ -19,6 +21,8 @@ import java.util.Random;
 @Slf4j
 @Service
 public class StorageServiceImpl implements StorageService {
+
+    private static final Map<String, String> STATUS_MAP = new ConcurrentHashMap<>();
 
     @Resource
     private StorageMapper storageMapper;
@@ -35,6 +39,12 @@ public class StorageServiceImpl implements StorageService {
         try {
             // 设置为预处理状态
             storage.setStatus(1);
+
+            // 判断是否已经执行过了Cancel或者Confirm
+            if(STATUS_MAP.get(xid)!=null){
+                // 表示已经执行了Cancel或者Confirm实现业务悬挂
+                return ;
+            }
 
             storageMapper.insert(storage);
 
@@ -57,6 +67,12 @@ public class StorageServiceImpl implements StorageService {
             String xid = context.getXid();
             // 将状态修改为完成
             log.info("记录库存信息提交处理，xid={}", xid);
+            // 幂等处理
+            if(STATUS_MAP.get(xid)!=null){
+                return true;
+            }
+
+            STATUS_MAP.put(xid,"Confirm");
 
             Object obj = context.getActionContext("storage");
             if (obj != null) {
@@ -82,6 +98,12 @@ public class StorageServiceImpl implements StorageService {
         try {
             String xid = context.getXid();
             log.info("记录库存信息回滚处理，xid={}",xid );
+
+            // 幂等处理
+            if(STATUS_MAP.get(xid)!=null){
+                return true;
+            }
+            STATUS_MAP.put(xid,"Cancel");
 
             // 将订单的状态修改为完成
             Object obj = context.getActionContext("storage");
